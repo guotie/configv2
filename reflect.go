@@ -1,10 +1,37 @@
-package config
+package configv2
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
 )
+
+// GetFieldByName 根据field name或field tagname获得field
+func GetFieldByName(i interface{}, name string) (rv reflect.Value, exist bool) {
+	t := reflect.TypeOf(i)
+	v := reflect.ValueOf(i)
+
+	if t.Kind() != reflect.Struct {
+		return
+	}
+
+	_ = v
+	//
+	if _, ok := t.FieldByName(name); ok {
+		return
+	}
+
+	for nf := 0; nf < t.NumField(); nf++ {
+		field := t.Field(nf)
+		if field.Name == name {
+			rv = reflect.ValueOf(field)
+			exist = true
+			return
+		}
+	}
+
+	return
+}
 
 func scan(val interface{}, rv reflect.Value) (err error) {
 	rv = indirect(rv)
@@ -112,8 +139,13 @@ func scan(val interface{}, rv reflect.Value) (err error) {
 	return err
 }
 
-// code from json decode
+// indirect copy from lib encoding/json decode.go
 //
+// indirect walks down v allocating pointers as needed,
+// until it gets to a non-pointer.
+// if it encounters an Unmarshaler, indirect stops and returns that.
+// if decodingNull is true, indirect stops at the last pointer so it can be set to nil.
+
 func indirect(v reflect.Value) reflect.Value {
 	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
 		v = v.Addr()
@@ -123,7 +155,7 @@ func indirect(v reflect.Value) reflect.Value {
 		// usefully addressable.
 		if v.Kind() == reflect.Interface && !v.IsNil() {
 			e := v.Elem()
-			if e.Kind() == reflect.Ptr && !e.IsNil() {
+			if e.Kind() == reflect.Ptr && !e.IsNil() && e.Elem().Kind() == reflect.Ptr {
 				v = e
 				continue
 			}
