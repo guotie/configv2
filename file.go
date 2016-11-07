@@ -63,8 +63,8 @@ func (fc *fileConfig) readConfig(fn string, rv reflect.Value) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(data))
-	printValueFileds(rv)
+	//fmt.Println(string(data))
+	//printValueFileds(rv, fmt.Sprint(rv.Type()))
 	err = json.Unmarshal(data, rv.Interface())
 	if err != nil {
 		return data, err
@@ -93,13 +93,14 @@ func (fc *fileConfig) readSubconfig(data []byte, rv reflect.Value) error {
 
 	dir := path.Dir(fc.filename)
 	rv = indirect(rv)
-	printValueFileds(rv)
+	//printValueFileds(rv, fmt.Sprint(rv.Type()))
 	t := rv.Type()
 	for fieldName, confName := range subconfs.SubConfig {
 		// 暂不考虑匿名对象的情况
 		if _, ok := t.FieldByName(fieldName); ok {
 			subv := rv.FieldByName(fieldName)
-			printValueFileds(subv)
+			subv = indirect(subv)
+			//printValueFileds(subv, fieldName)
 
 			if subv.IsValid() == false {
 				return fmt.Errorf("reflect.Value has no field %s", fieldName)
@@ -115,6 +116,7 @@ func (fc *fileConfig) readSubconfig(data []byte, rv reflect.Value) error {
 			}
 		} else {
 			// 根据 field name 找不到 field 的情况
+			fmt.Printf("Not found field %s", fieldName)
 		}
 	}
 
@@ -123,16 +125,19 @@ func (fc *fileConfig) readSubconfig(data []byte, rv reflect.Value) error {
 
 //
 // print value fields
-func printValueFileds(v reflect.Value) {
+func printValueFileds(v reflect.Value, name string) {
 	if v.IsValid() == false {
-		fmt.Printf("v %v is zero value.\n", v)
+		fmt.Printf("printValueFileds: v %v is zero value.\n", v)
 		return
+	}
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		fmt.Printf("param v should be struct, but %v\n", v.Kind())
+		fmt.Printf("printValueFileds: param v should be struct, but %v %v\n", v.Kind(), name)
 		return
 	}
-	fmt.Printf("printValueFileds:\n")
+	fmt.Printf("printValueFileds: %s\n", name)
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		fmt.Printf("field %d: %v %v\n", i, field.Kind(), field)

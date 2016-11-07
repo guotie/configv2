@@ -15,7 +15,8 @@ func TestFileConfig(t *testing.T) {
 		Str string
 		B   bool
 
-		Sub Su
+		Sub  *Su
+		Arrs []string
 	}
 
 	var (
@@ -30,5 +31,5 @@ func TestFileConfig(t *testing.T) {
 		return
 	}
 
-	fmt.Println(s)
+	fmt.Println(s, *s.Sub)
 }

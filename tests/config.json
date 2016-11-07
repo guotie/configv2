@@ -1,6 +1,7 @@
 {
     "includeConfigs": {
-        "Sub": "./sub.json"
+        "Sub": "./sub.json",
+		"Arrs": "./arrs.json"
     },
     "f": 3.1415
 }
