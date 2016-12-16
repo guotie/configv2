@@ -17,14 +17,34 @@ const (
 // Config Config接口
 type Config interface {
 	Typ() int
-	Location() string
-	Get(key string) (interface{}, bool)
+	Location() []string
+	Read(v interface{}) error
+	Save(v interface{}) error
 }
 
 // Options Config options, 用于生成Config
 type Options struct {
 	typ      int
-	location string
+	location []string
+	prefix   string
+	username string
+	password string
+}
+
+// NewConfig 根据options生成Config
+func NewConfig(o *Options) (c Config) {
+	switch o.typ {
+	case TypFile:
+		c = &fileConfig{
+			files: o.location,
+		}
+	case TypEtcd:
+		panic("Typ etcd not implement yet.")
+	default:
+		panic("invalid option typ")
+	}
+
+	return
 }
 
 //
@@ -43,7 +63,25 @@ func (op *Options) Typ(t int) *Options {
 }
 
 // Location 设置options地址
-func (op *Options) Location(loc string) *Options {
+func (op *Options) Location(loc []string) *Options {
 	op.location = loc
+	return op
+}
+
+// Prefix 设置options prefix
+func (op *Options) Prefix(prefix string) *Options {
+	op.prefix = prefix
+	return op
+}
+
+// Location 设置options的username
+func (op *Options) Username(un string) *Options {
+	op.username = un
+	return op
+}
+
+// Location 设置options的password
+func (op *Options) Password(pwd string) *Options {
+	op.password = pwd
 	return op
 }

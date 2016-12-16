@@ -1,11 +1,14 @@
 package configv2
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path"
 	"reflect"
+	"regexp"
 )
 
 const (
@@ -21,8 +24,9 @@ type subConfig struct {
 }
 
 type fileConfig struct {
-	filename string
-	data     []byte // 文件内容
+	files []string // 所有待选config 文件
+	file  string   // 选中的config文件
+	data  []byte   // 文件内容
 
 	val interface{}
 	// 配置文件必须是一个json object对象, 可以映射为一个map对象
@@ -31,14 +35,21 @@ type fileConfig struct {
 	subconfs subConfig
 }
 
+var (
+	// 换行
+	LF = byte('\n')
+	// 注释的行
+	commentLine = regexp.MustCompile(`\s*#`)
+)
+
 // Typ config类型
 func (fc *fileConfig) Typ() int {
 	return TypFile
 }
 
 // Location config file位置
-func (fc *fileConfig) Location() string {
-	return fc.filename
+func (fc *fileConfig) Location() []string {
+	return fc.files
 }
 
 // 读config文件，填充到制定的结构体中
@@ -48,7 +59,14 @@ func (fc *fileConfig) Read(v interface{}) error {
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return fmt.Errorf("param should be pointer")
 	}
-	data, err := fc.readConfig(fc.filename, rv)
+
+	// 读取文件内容
+	data, err := fc.readFiles()
+	if err != nil {
+		return err
+	}
+	// 映射到结构体中
+	err = fc.readConfig(data, rv)
 	if err != nil {
 		return err
 	}
@@ -58,25 +76,73 @@ func (fc *fileConfig) Read(v interface{}) error {
 	return nil
 }
 
-func (fc *fileConfig) readConfig(fn string, rv reflect.Value) ([]byte, error) {
-	data, err := fc.readfile(fn)
-	if err != nil {
-		return nil, err
+// 写config文件
+func (fc *fileConfig) Save(v interface{}) error {
+	return nil
+}
+
+// 依次读取files，直到有一个成功为止
+func (fc *fileConfig) readFiles() ([]byte, error) {
+	if len(fc.files) == 0 {
+		return nil, fmt.Errorf("No files found")
 	}
+
+	errs := []error{}
+	for _, fn := range fc.files {
+		data, err := fc.readfile(fn)
+		if err == nil {
+			fc.file = fn
+			return data, nil
+		}
+		errs = append(errs, err)
+	}
+
+	return nil, fmt.Errorf("Read all file failed: %v", errs)
+}
+
+func (fc *fileConfig) readConfig(data []byte, rv reflect.Value) (err error) {
 	//fmt.Println(string(data))
 	//printValueFileds(rv, fmt.Sprint(rv.Type()))
 	err = json.Unmarshal(data, rv.Interface())
 	if err != nil {
-		return data, err
+		return err
 	}
-	return data, nil
+	return nil
 }
 
 //
-// 读配置文件内容
+// 读配置文件内容, 移除所有以 # 开始的行
 func (fc *fileConfig) readfile(fn string) (data []byte, err error) {
 	data, err = ioutil.ReadFile(fn)
-	return
+	if err != nil {
+		return nil, err
+	}
+	return removeComments(data), nil
+}
+
+func removeComments(data []byte) []byte {
+	var (
+		line  []byte
+		ndata = []byte{}
+		err   error
+	)
+
+	rd := bytes.NewBuffer(data)
+	for line, err = rd.ReadBytes(LF); err == io.EOF || err == nil; line, err = rd.ReadBytes(LF) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		if commentLine.Match(line) == false {
+			// print("    :", string(line))
+			ndata = append(ndata, line...)
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+
+	return ndata
 }
 
 // 读子配置
@@ -91,7 +157,7 @@ func (fc *fileConfig) readSubconfig(data []byte, rv reflect.Value) error {
 		return fmt.Errorf("read subconfig failed: %v", err)
 	}
 
-	dir := path.Dir(fc.filename)
+	dir := path.Dir(fc.file)
 	rv = indirect(rv)
 	//printValueFileds(rv, fmt.Sprint(rv.Type()))
 	t := rv.Type()
@@ -109,7 +175,13 @@ func (fc *fileConfig) readSubconfig(data []byte, rv reflect.Value) error {
 				return fmt.Errorf("value field cannot addr")
 			}
 			subv = subv.Addr()
-			_, ierr := fc.readConfig(path.Join(dir, confName), subv)
+			data, ierr := fc.readfile(path.Join(dir, confName))
+			if ierr != nil {
+				fmt.Printf("Read sub config file %v failed: %v\n",
+					path.Join(dir, confName), ierr)
+				continue
+			}
+			ierr = fc.readConfig(data, subv)
 			if ierr != nil {
 				fmt.Printf("get field/subconfig %v/%v failed: %v",
 					fieldName, confName, ierr)

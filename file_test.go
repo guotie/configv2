@@ -1,9 +1,19 @@
 package configv2
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 )
+
+func TestRemoveComments(t *testing.T) {
+	var data = []byte("{\r\n    # ssfdiso\n####\r\n\t\t#\r\n\r\n}")
+	ndata := removeComments(data)
+	if bytes.Compare(ndata, []byte("{}")) != 0 {
+		t.Log(string(ndata))
+		t.Fail()
+	}
+}
 
 func TestFileConfig(t *testing.T) {
 	type Su struct {
@@ -22,7 +32,7 @@ func TestFileConfig(t *testing.T) {
 	var (
 		s ST
 	)
-	fc := fileConfig{filename: "./tests/config.json"}
+	fc := fileConfig{files: []string{"./tests/config.json"}}
 
 	err := fc.Read(&s)
 	if err != nil {
