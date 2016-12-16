@@ -129,13 +129,12 @@ func removeComments(data []byte) []byte {
 
 	rd := bytes.NewBuffer(data)
 	for line, err = rd.ReadBytes(LF); err == io.EOF || err == nil; line, err = rd.ReadBytes(LF) {
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
 		if commentLine.Match(line) == false {
-			// print("    :", string(line))
-			ndata = append(ndata, line...)
+			line = bytes.TrimSpace(line)
+			if len(line) != 0 {
+				// print("    :", string(line))
+				ndata = append(ndata, line...)
+			}
 		}
 		if err == io.EOF {
 			break
