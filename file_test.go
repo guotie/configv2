@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"reflect"
+
+	"github.com/guotie/assert"
 )
 
 func TestRemoveComments(t *testing.T) {
@@ -18,11 +22,12 @@ func TestRemoveComments(t *testing.T) {
 func TestFileConfig(t *testing.T) {
 	type Su struct {
 		F float64 `json:"fl"`
+		S string  `default:"abcdefg"`
 	}
 	type ST struct {
 		A   int
 		F   float64 `json:"f"`
-		Str string
+		Str string  `default:"12345"`
 		B   bool
 
 		Sub  *Su
@@ -41,5 +46,10 @@ func TestFileConfig(t *testing.T) {
 		return
 	}
 
-	fmt.Println(s, *s.Sub)
+	assert.Assert(s.F == 3.1415, "s.F!=3.1415")
+	assert.Assert(s.Str == "12345", "s.Str!=12345")
+	assert.Assert(s.Sub.F == 1.234, "s.Sub.F!=1.234")
+	assert.Assert(s.Sub.S == "abcdefg", "s.Sub.S!=abcdefg")
+	assert.Assert(reflect.DeepEqual(s.Arrs, []string{"hello", "world", "you can you up", "no can no bb"}), "s.Attr Not equal")
+	//fmt.Println(s, *s.Sub)
 }

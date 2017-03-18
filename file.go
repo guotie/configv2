@@ -100,13 +100,18 @@ func (fc *fileConfig) readFiles() ([]byte, error) {
 	return nil, fmt.Errorf("Read all file failed: %v", errs)
 }
 
+// 将配置文件json unmarshal到rv中
 func (fc *fileConfig) readConfig(data []byte, rv reflect.Value) (err error) {
+	// 获取并设置默认配置
+	setDefaultValue(rv)
+
 	//fmt.Println(string(data))
 	//printValueFileds(rv, fmt.Sprint(rv.Type()))
 	err = json.Unmarshal(data, rv.Interface())
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

@@ -2,7 +2,9 @@ package configv2
 
 import (
 	"fmt"
+	"log"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -278,4 +280,105 @@ func array(val interface{}, rv reflect.Value) (err error) {
 	}
 
 	return
+}
+
+// convertBool convert string to bool
+func convertBool(s string) bool {
+	if s == "true" {
+		return true
+	} else if s == "false" {
+		return false
+	}
+	log.Printf("convertBool: invalid convert value %s\n", s)
+	return false
+}
+
+// convertInt64 convert string to int64
+func convertInt64(s string) int64 {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		log.Printf("convertInt64: convert string %s failed: %v\n", s, err)
+		return 0
+	}
+	return i
+}
+
+// convertInt64 convert string to uint64
+func convertUint64(s string) uint64 {
+	u, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		log.Printf("convertUint64: convert string %s failed: %v\n", s, err)
+		return 0
+	}
+	return u
+}
+
+// convertFloat64 convert string to float64
+func convertFloat64(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		log.Printf("convertFloat64: convert string %s failed: %v\n", s, err)
+		return 0.0
+	}
+	return f
+}
+
+// setDefaultValue 当结构体的数值为空时, 设置结构体的默认值
+// rv kind 为 Struct
+func setDefaultValue(val reflect.Value) {
+	rv := indirect(val)
+	if rv.Kind() != reflect.Struct {
+		log.Printf("setDefaultValue: Only struct kind can be set, Kind: %v\n", rv.Kind())
+		return
+	}
+
+	rt := rv.Type()
+	fields := rt.NumField()
+	for i := 0; i < fields; i++ {
+		ft := rt.Field(i)
+		fv := rv.Field(i)
+		tag := ft.Tag.Get("default")
+		if tag == "" && fv.Kind() != reflect.Struct {
+			continue
+		}
+
+		switch fv.Kind() {
+		case reflect.String:
+			fv.SetString(tag)
+		case reflect.Bool:
+			fv.SetBool(convertBool(tag))
+
+		case reflect.Uint8:
+			fallthrough
+		case reflect.Uint16:
+			fallthrough
+		case reflect.Uint32:
+			fallthrough
+		case reflect.Uint64:
+			fallthrough
+		case reflect.Uint:
+			fv.SetUint(convertUint64(tag))
+
+		case reflect.Int8:
+			fallthrough
+		case reflect.Int16:
+			fallthrough
+		case reflect.Int32:
+			fallthrough
+		case reflect.Int64:
+			fallthrough
+		case reflect.Int:
+			fv.SetInt(convertInt64(tag))
+
+		case reflect.Float32:
+			fallthrough
+		case reflect.Float64:
+			fv.SetFloat(convertFloat64(tag))
+
+		case reflect.Struct:
+			setDefaultValue(fv.Addr())
+		default:
+			log.Printf("setDefault do not support field %s Type %v\n", ft.Name, fv.Kind())
+		}
+	}
 }
