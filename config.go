@@ -20,6 +20,7 @@ type Config interface {
 	Location() []string
 	Read(v interface{}) error
 	Save(v interface{}) error
+	Get(key string) (interface{}, bool)
 }
 
 // Options Config options, 用于生成Config

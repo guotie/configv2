@@ -51,5 +51,9 @@ func TestFileConfig(t *testing.T) {
 	assert.Assert(s.Sub.F == 1.234, "s.Sub.F!=1.234")
 	assert.Assert(s.Sub.S == "abcdefg", "s.Sub.S!=abcdefg")
 	assert.Assert(reflect.DeepEqual(s.Arrs, []string{"hello", "world", "you can you up", "no can no bb"}), "s.Attr Not equal")
+
+	v, ok := fc.Get("F")
+	assert.Assert(ok == true, "F filed should exist")
+	assert.Assert(v == 3.1415, "v==3.1415")
 	//fmt.Println(s, *s.Sub)
 }
