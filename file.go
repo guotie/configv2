@@ -9,6 +9,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -28,9 +29,11 @@ type fileConfig struct {
 	file  string   // 选中的config文件
 	data  []byte   // 文件内容
 
-	val interface{}
+	success bool        // 是否读取、解析成功
+	val     interface{} // 读取成功后, 指向解析后的数据
+
 	// 配置文件必须是一个json object对象, 可以映射为一个map对象
-	m map[string]interface{}
+	//m map[string]interface{}
 	// 包含的子配置文件
 	subconfs subConfig
 }
@@ -73,7 +76,23 @@ func (fc *fileConfig) Read(v interface{}) error {
 	if err := fc.readSubconfig(data, rv); err != nil {
 		return err
 	}
+
+	// 成功
+	fc.success = true
+	fc.val = v
 	return nil
+}
+
+// Get get key from config
+//   第一个参数为value
+//   第二个参数为是否存在
+func (fc *fileConfig) Get(key string) (interface{}, bool) {
+	if fc.success == false {
+		// 配置文件尚未解析或解析失败
+		return nil, false
+	}
+
+	return getFields(fc.val, strings.Split(key, "."))
 }
 
 // 写config文件

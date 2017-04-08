@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/guotie/assert"
@@ -118,4 +119,79 @@ func TestStructField(t *testing.T) {
 	assert.Assert(mS.Sub.Sub.H4 == 640, "ms.Sub.Sub.H4!=640")
 	assert.Assert(mS.Sub.Sub.H == 10, "ms.Sub.Sub.H!=10")
 	assert.Assert(mS.Sub.Sub.D == true, "ms.Sub.Sub.D!=true")
+}
+
+func TestGetField(t *testing.T) {
+	type (
+		SA struct {
+			FA int
+			FB bool
+			FC float32
+			FD string
+		}
+		SB struct {
+			FA SA
+			FB string
+		}
+		SC struct {
+			FA map[string]SA
+			FB SB
+			FC string
+		}
+	)
+
+	var (
+		a = SA{
+			FA: 100,
+			FB: true,
+			FC: 4.321,
+			FD: "Struct SA",
+		}
+		b = SB{
+			FA: SA{
+				101,
+				false,
+				3.456,
+				"Struct SA in SB",
+			},
+			FB: "struct SB",
+		}
+		c = SC{
+			FA: map[string]SA{
+				"key1": a,
+				"key2": b.FA,
+			},
+			FB: b,
+			FC: "Struct SC",
+		}
+
+		cases = []struct {
+			obj    interface{}
+			field  string
+			result interface{}
+			exist  bool
+			expect interface{}
+		}{
+			{a, "FA", 100, true, a.FA},
+			{a, "FB", true, true, a.FB},
+			{a, "FE", nil, false, nil},
+			{&a, "FC", 4.321, true, a.FC},
+			{&a, "FD", "Struct SA", true, a.FD},
+			{&a, "FE", nil, false, nil},
+
+			{c, "FA.key1.FA", 100, true, c.FA["key1"].FA},
+			{&c, "FA.key1.FA", 100, true, c.FA["key1"].FA},
+			{&c, "FB.FA.FA", 101, true, c.FB.FA.FA},
+		}
+	)
+
+	for idx, c := range cases {
+		result, ok := getFields(c.obj, strings.Split(c.field, "."))
+		assert.Assertf(ok == c.exist, "exist NOT equal expect: index=%d, obj: %v field: %v", idx, c.obj, c.field)
+		if ok {
+			assert.Assertf(reflect.DeepEqual(result, c.expect),
+				"result NOT equal expect: index=%d result=%v expect=%v result_type=%v expect_type=%v",
+				idx, result, c.expect, reflect.TypeOf(result), reflect.TypeOf(c.expect))
+		}
+	}
 }

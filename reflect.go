@@ -9,31 +9,31 @@ import (
 )
 
 // GetFieldByName 根据field name或field tagname获得field
-func GetFieldByName(i interface{}, name string) (rv reflect.Value, exist bool) {
-	t := reflect.TypeOf(i)
-	v := reflect.ValueOf(i)
+// func GetFieldByName(i interface{}, name string) (rv reflect.Value, exist bool) {
+// 	t := reflect.TypeOf(i)
+// 	v := reflect.ValueOf(i)
 
-	if t.Kind() != reflect.Struct {
-		return
-	}
+// 	if t.Kind() != reflect.Struct {
+// 		return
+// 	}
 
-	_ = v
-	//
-	if _, ok := t.FieldByName(name); ok {
-		return
-	}
+// 	_ = v
+// 	//
+// 	if _, ok := t.FieldByName(name); ok {
+// 		return
+// 	}
 
-	for nf := 0; nf < t.NumField(); nf++ {
-		field := t.Field(nf)
-		if field.Name == name {
-			rv = reflect.ValueOf(field)
-			exist = true
-			return
-		}
-	}
+// 	for nf := 0; nf < t.NumField(); nf++ {
+// 		field := t.Field(nf)
+// 		if field.Name == name {
+// 			rv = reflect.ValueOf(field)
+// 			exist = true
+// 			return
+// 		}
+// 	}
 
-	return
-}
+// 	return
+// }
 
 func scan(val interface{}, rv reflect.Value) (err error) {
 	rv = indirect(rv)
@@ -381,4 +381,41 @@ func setDefaultValue(val reflect.Value) {
 			log.Printf("setDefault do not support field %s Type %v\n", ft.Name, fv.Kind())
 		}
 	}
+}
+
+// getField get field from val
+func getField(v interface{}, field string) (interface{}, bool) {
+	rv := indirect(reflect.ValueOf(v))
+	rt := rv.Type()
+
+	//fmt.Println(rt.Kind(), rt.Kind() == reflect.Struct, field)
+	if rt.Kind() == reflect.Struct {
+		_, ok := rt.FieldByName(field)
+		if !ok {
+			return nil, false
+		}
+		return rv.FieldByName(field).Interface(), true
+	} else if rt.Kind() == reflect.Map {
+		return rv.MapIndex(reflect.ValueOf(field)).Interface(), true
+	}
+
+	return nil, false
+}
+
+func getFields(v interface{}, keys []string) (interface{}, bool) {
+	var (
+		result interface{}
+		ok     bool
+	)
+
+	rv := v
+	for _, key := range keys {
+		result, ok = getField(rv, key)
+		if !ok {
+			return nil, ok
+		}
+		rv = result
+	}
+
+	return result, ok
 }
