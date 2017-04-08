@@ -32,6 +32,17 @@ type Options struct {
 	password string
 }
 
+var _config Config
+
+// Get get key from config
+func Get(key string) (interface{}, bool) {
+	if _config != nil {
+		return _config.Get(key)
+	}
+
+	panic("config has not initialized")
+}
+
 // NewConfig 根据options生成Config
 func NewConfig(o *Options) (c Config) {
 	switch o.typ {
@@ -39,6 +50,8 @@ func NewConfig(o *Options) (c Config) {
 		c = &fileConfig{
 			files: o.location,
 		}
+		_config = c
+
 	case TypEtcd:
 		panic("Typ etcd not implement yet.")
 	default:
@@ -48,7 +61,7 @@ func NewConfig(o *Options) (c Config) {
 	return
 }
 
-// NewConfig 生成TypFile类型的Config
+// NewFileConfig 生成TypFile类型的Config
 func NewFileConfig(fn string, fns ...string) Config {
 	return &fileConfig{
 		files: append([]string{fn}, fns...),

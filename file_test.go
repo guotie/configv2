@@ -37,6 +37,7 @@ func TestFileConfig(t *testing.T) {
 	var (
 		s ST
 	)
+	assert.Assert(_config == nil, "_config should be nil")
 	fc := fileConfig{files: []string{"./tests/config.json"}}
 
 	err := fc.Read(&s)
