@@ -63,9 +63,10 @@ func NewConfig(o *Options) (c Config) {
 
 // NewFileConfig 生成TypFile类型的Config
 func NewFileConfig(fn string, fns ...string) Config {
-	return &fileConfig{
+	_config = &fileConfig{
 		files: append([]string{fn}, fns...),
 	}
+	return _config
 }
 
 //

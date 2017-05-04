@@ -327,11 +327,25 @@ func convertFloat64(s string) float64 {
 // rv kind 为 Struct
 func setDefaultValue(val reflect.Value) {
 	rv := indirect(val)
-	if rv.Kind() != reflect.Struct {
-		log.Printf("setDefaultValue: Only struct kind can be set, Kind: %v\n", rv.Kind())
+	switch rv.Kind() {
+	case reflect.Struct:
+		setStructDefaultValue(rv)
+	case reflect.Map:
+		setMapDefaultValue(rv)
+
+	default:
+		log.Printf("setDefaultValue: Only struct/map kind can be set, Kind: %v\n", rv.Kind())
 		return
 	}
+}
 
+// setMapDefaultValue set map value
+func setMapDefaultValue(rv reflect.Value) {
+	rv.Set(reflect.MakeMap(rv.Type()))
+}
+
+// setStructDefaultValue set struct default value
+func setStructDefaultValue(rv reflect.Value) {
 	rt := rv.Type()
 	fields := rt.NumField()
 	for i := 0; i < fields; i++ {
@@ -381,6 +395,10 @@ func setDefaultValue(val reflect.Value) {
 			log.Printf("setDefault do not support field %s Type %v\n", ft.Name, fv.Kind())
 		}
 	}
+}
+
+func setValue() {
+
 }
 
 // getField get field from val

@@ -39,7 +39,7 @@ type fileConfig struct {
 }
 
 var (
-	// 换行
+	// LF 换行
 	LF = byte('\n')
 	// 注释的行
 	commentLine = regexp.MustCompile(`\s*#`)
