@@ -406,7 +406,7 @@ func getField(v interface{}, field string) (interface{}, bool) {
 	rv := indirect(reflect.ValueOf(v))
 	rt := rv.Type()
 
-	//fmt.Println(rt.Kind(), rt.Kind() == reflect.Struct, field)
+	// fmt.Println(rt.Kind(), rt.Kind() == reflect.Struct, field)
 	if rt.Kind() == reflect.Struct {
 		_, ok := rt.FieldByName(field)
 		if !ok {
@@ -430,6 +430,7 @@ func getFields(v interface{}, keys []string) (interface{}, bool) {
 	for _, key := range keys {
 		result, ok = getField(rv, key)
 		if !ok {
+			// fmt.Printf("Get key %v failed\n", key)
 			return nil, ok
 		}
 		rv = result

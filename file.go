@@ -89,6 +89,7 @@ func (fc *fileConfig) Read(v interface{}) error {
 func (fc *fileConfig) Get(key string) (interface{}, bool) {
 	if fc.success == false {
 		// 配置文件尚未解析或解析失败
+		fmt.Println("fileConfig NOT success")
 		return nil, false
 	}
 
